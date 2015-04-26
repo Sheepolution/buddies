@@ -11,18 +11,18 @@ buddies = {}
 buddies.__index = buddies
 
 local makeFunc = function (self,f)
-	newFunc = function (...)
+	newFunc = function (self,...)
 		for i=#self,1,-1 do
-			self[i][f](...)
+			self[i][f](self[i],...)
 		end
 	end
 	return newFunc
 end
 
 local makeFuncForward = function (self,f)
-	newFunc = function (...)
+	newFunc = function (self,...)
 		for i=1,#self do
-			self[i][f](...)
+			self[i][f](self[i],...)
 		end
 	end
 	return newFunc
@@ -40,7 +40,7 @@ function buddies:add(...)
 		local obj = args[i]
 		if type(obj) == "table" then
 			self[#self+1] = obj
-			for k,v in pairs(obj) do
+			for k,v in pairs(getmetatable(obj)) do
 				if type(obj[k]) == "function" and not self[k] then
 					self[k] = makeFunc(self,k)
 					self[k .. "_"] = makeFuncForward(self,k)
@@ -56,7 +56,7 @@ function buddies:prepare(...)
 	for i = 1, select("#", ...) do
 		local obj = args[i]
 		if type(obj) == "table" then
-			for k,v in pairs(obj) do
+			for k,v in pairs(getmetatable(obj)) do
 				if type(obj[k]) == "function" then
 					self[k] = makeFunc(self,k)
 					self[k .. "_"] = makeFuncForward(self,k)
@@ -183,3 +183,5 @@ function buddies:sort(k,htl)
 		end
 	end
 end
+
+--If I have the function name as string, how can I call it like obj:func() ?
