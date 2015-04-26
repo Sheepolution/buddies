@@ -92,10 +92,10 @@ function buddies:_remove(obj)
 	self[#self] = nil
 end
 
---Has all the objects call the passed function
-function buddies:_call(f)
+--Calls the passed function for each object, passing the object as first argument.
+function buddies:_call(func)
 	for i=1,#self do
-		f(self[i])
+		func(self[i])
 	end
 end
 
@@ -107,18 +107,14 @@ function buddies:_others(func,forward)
 	if forward == buddies._forward then
 		for i=1,#self-1 do
 			for j=i+1,#self do
-				kill = func(self[i],self[j])
-				if kill then break end
+				if func(self[i],self[j]) then break end
 			end
-			if kill then break end
 		end
 	else
 		for i=#self,2,-1 do
 			for j=i-1,1,-1 do
-				kill = func(self[i],self[j])
-				if kill then break end
+				if func(self[i],self[j]) then break end
 			end
-			if kill then break end
 		end
 	end
 end
@@ -143,7 +139,7 @@ end
 --Sorts all the objects on a property.
 --If an object does not have the passed property, it will be treated as 0.
 --Will automatically sort from low to high, unlesss htl (high to low) is true.
-function buddies:_sort(a,htl)
+function buddies:_sort(k,htl)
 	local sorted = false
 	if htl then
 		while not sorted do
@@ -151,8 +147,8 @@ function buddies:_sort(a,htl)
 			for i=1,#self-1 do
 				for j=i+1,#self do
 					local propA, propB
-					propA = self[i][a] or 0
-					propB = self[j][a] or 0
+					propA = self[i][k] or 0
+					propB = self[j][k] or 0
 					if propA < propB then
 						local old = self[j]
 						self[j] = self[i]
@@ -168,8 +164,8 @@ function buddies:_sort(a,htl)
 			for i=1,#self-1 do
 				for j=i+1,#self do
 					local propA, propB
-					propA = self[i][a] or 0
-					propB = self[j][a] or 0
+					propA = self[i][k] or 0
+					propB = self[j][k] or 0
 					if propA > propB then
 						local old = self[j]
 						self[j] = self[i]
@@ -181,13 +177,3 @@ function buddies:_sort(a,htl)
 		end
 	end
 end
-
--- buddies._add = buddies.add
--- buddies._remove = buddies.remove
--- buddies._prepare = buddies.prepare
--- buddies._flush = buddies.flush
--- buddies._call = buddies.call
--- buddies._set = buddies.set
--- buddies._sort = buddies.sort
-
-return buddies
