@@ -17,18 +17,23 @@ objects = buddies.new()
 
 
 ## Example
-Now we can add objects to our group.
+Now we can add objects to our group. You can only add metatables.
 
 ```lua
 dog = {}
+dog.__index = dog
 function dog:makeSound()
 	print("Bark!")
 end
 
 cat = {}
+cat.__index = {}
 function cat:makeSound()
 	print("Meow!")
 end
+
+dog = setmetatable({},dog)
+cat = setmetatable({},cat)
 
 objects:add(dog,cat)
 ```
@@ -66,7 +71,7 @@ objects:makeSound()
 Removes `object` from the group. If a number is passed, it will remove the object on that position in the group.
 
 ```lua
-objects:_add(dog,cat,bird)
+objects:add(dog,cat,bird)
 objects:makeSound()
 --output: "Kruauuaa!!", "Meow!", "Bark!"
 
@@ -148,11 +153,11 @@ If an object does not have the passed property, it will be treated as `0`.
 Will automatically sort from low to high, unlesss `htl` (high to low) is `true`.
 
 ```lua
-objects:_add(elephant,mouse,cat)
+objects:add(elephant,mouse,cat)
 objects:name()
 --ouputs: "cat", "mouse", "elephant"
 
-objects:_sort("size")
+objects:sort("size")
 objects:name()
 --outputs; "elephant", "cat", "mouse"
 ```
