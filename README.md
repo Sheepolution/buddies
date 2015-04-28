@@ -6,7 +6,7 @@ A group module for Lua.
 ## Installation
 
 ```lua
-require "buddies"
+buddies = require "buddies"
 ```
 
 After requiring it, you can make a new group like this:

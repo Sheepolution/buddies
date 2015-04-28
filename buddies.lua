@@ -6,7 +6,7 @@
 -- This library is free software; you can redistribute it and/or modify it
 -- under the terms of the MIT license. See LICENSE for details.
 
-buddies = {}
+local buddies = {}
 
 buddies.__index = buddies
 
@@ -184,4 +184,4 @@ function buddies:sort(k,htl)
 	end
 end
 
---If I have the function name as string, how can I call it like obj:func() ?
+return buddies
