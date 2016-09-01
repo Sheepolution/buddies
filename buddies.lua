@@ -7,67 +7,82 @@
 -- under the terms of the MIT license. See LICENSE for details.
 
 local buddies = {}
+local func = {}
+local superfunc = {}
 
-buddies.__index = buddies
-
-local makeFunc = function (self,f)
-	newFunc = function (self,...)
-		for i=#self,1,-1 do
-			self[i][f](self[i],...)
-		end
-	end
-	return newFunc
-end
-
-local makeFuncForward = function (self,f)
-	newFunc = function (self,...)
-		for i=1,#self do
-			self[i][f](self[i],...)
-		end
-	end
-	return newFunc
-end
-
-
-function buddies.new()
-	return setmetatable({}, buddies)
-end
-
---Adds objects to the group, and copies their functions.
-function buddies:add(...)
-	local args = {...}
-	for i = 1, select("#", ...) do
-		local obj = args[i]
-		if type(obj) == "table" then
-			self[#self+1] = obj
-			for k,v in pairs(getmetatable(obj)) do
-				if type(obj[k]) == "function" and not self[k] then
-					self[k] = makeFunc(self,k)
-					self[k .. "_"] = makeFuncForward(self,k)
+function buddies:__index(f)
+	if type(f) == "string" then
+		if f:sub(f:len(),f:len()) == "_" then
+			local k = f:sub(0,f:len()-1)
+			self[f] = function (self,...)
+				for i=1,#self do
+					if self[i][k] then
+						self[i][k](self[i],...)
+					end
+				end
+			end
+		else
+			self[f] = function (self,...)
+				for i=#self,1,-1 do
+					if self[i][f] then
+						self[i][f](self[i],...)
+					end
 				end
 			end
 		end
+		return self[f]
 	end
 end
 
---Copies the functions of the object, without adding the objects.
-function buddies:prepare(...)
-	local args = {...}
-	for i = 1, select("#", ...) do
-		local obj = args[i]
-		if type(obj) == "table" then
-			for k,v in pairs(getmetatable(obj)) do
-				if type(obj[k]) == "function" then
-					self[k] = makeFunc(self,k)
-					self[k .. "_"] = makeFuncForward(self,k)
-				end
-			end
+
+function buddies.new(a, ...)
+	local t
+	if a == true then
+		t =  setmetatable({
+		add = superfunc.add, 
+		count = superfunc.count,
+		find = superfunc.find,
+		interact = superfunc.interact,
+		interact_ = superfunc.interact_,
+		}, buddies)
+		for i,v in ipairs({...}) do
+			table.insert(self, v)
 		end
+	else
+		t =  setmetatable({
+		add = func.add,
+		addAt = func.addAt,
+		remove = func.remove,
+		removeIf = func.removeIf,
+		count = func.count,
+		find = func.find,
+		call = func.call,
+		call_ = func.call_,
+		interact = func.interact,
+		interact_ = func.interact_,
+		flush = func.flush,
+		set = func.set,
+		sort = func.sort
+		}, buddies)
+		t:add(a, ...)
 	end
+	return t
+end
+
+
+function func:add(...)
+	for i,v in ipairs({...}) do
+		table.insert(self, v)
+	end
+end
+
+
+function func:insert(p, v)
+	table.insert(self, p, v)
 end
 
 --Removes the object. If a number is passed, the object on that position will be removed instead.
-function buddies:remove(obj)
+function func:remove(obj)
 	t = type(obj)
 	
 	local kill = 0
@@ -84,24 +99,57 @@ function buddies:remove(obj)
 	end
 
 	if kill > 0 then
-		self[kill] = nil
-	end
+		if #self == 1 then
+			self[1] = nil
+		else
+			for i=kill + 1,#self do
+				self[i-1] = self[i]
+			end
 
-	for i=kill + 1,#self do
-		self[i-1] = self[i]
+			self[#self] = nil
+		end
 	end
+end
 
-	self[#self] = nil
+
+function func:removeIf(func)
+	for i=#self,1,-1 do
+		if func(self[i]) then
+			self:remove(self[i])
+		end
+	end
+end
+
+
+function func:find(func)
+	local t = {}
+	for i=#self,1,-1 do
+		if func(self[i]) then
+			table.insert(t, self[i])
+		end
+	end
+	return t
+end
+
+
+function func:count(func)
+	local a
+	for i=1,#self do
+		if func(self[i]) then
+			a = a + 1
+		end
+	end
+	return a
 end
 
 --Calls the passed function for each object, passing the object as first argument.
-function buddies:call(func)
+function func:call(func)
 	for i=#self,1,-1 do
 		func(self[i])
 	end
 end
 
-function buddies:call_(func)
+function func:call_(func)
 	for i=1,#self do
 		func(self[i])
 	end
@@ -109,7 +157,7 @@ end
 
 --Has all the objects iterate through the other objects, allowing for interactivity.
 --Calls the passed function, giving both objects as arguments.
-function buddies:others(func)
+function func:interact(func)
 	for i=#self,2,-1 do
 		for j=i-1,1,-1 do
 			if func(self[i],self[j]) then break end
@@ -117,7 +165,8 @@ function buddies:others(func)
 	end
 end
 
-function buddies:others_(func)
+
+function func:interact_(func)
 	for i=1,#self-1 do
 		for j=i+1,#self do
 			if func(self[i],self[j]) then break end
@@ -127,16 +176,16 @@ end
 
 --Sets a value to all the objects.
 --Will only set the value if the object already has the property, unless force is true.
-function buddies:set(k,v,force)
+function func:set(k,v,force)
 	for i=1,#self do
-		if self[i][k]~=nil or force then
+		if force or self[i][k]~=nil then
 			self[i][k] = v
 		end
 	end
 end
 
 --Removes all the objects, but keeps the functions.
-function buddies:flush()
+function func:flush()
 	for i=1,#self do
 		self[i] = nil
 	end
@@ -145,7 +194,7 @@ end
 --Sorts all the objects on a property.
 --If an object does not have the passed property, it will be treated as 0.
 --Will automatically sort from low to high, unlesss htl (high to low) is true.
-function buddies:sort(k,htl)
+function func:sort(k,htl)
 	local sorted = false
 	if htl then
 		while not sorted do
@@ -182,6 +231,52 @@ function buddies:sort(k,htl)
 			end
 		end
 	end
+end
+
+
+function superfunc:add(n, ...)
+	assert(type(n) == "number", "Superbuddy needs a number as first argument", 2)
+	self[n]:add(...)
+end
+
+
+function superfunc:count(func)
+	local a
+	for i,v in ipairs(self) do
+		a = a + v:count(func)
+	end
+	return a
+end
+
+
+function superfunc:interact(func)
+	local t = self:find(function () return true end)
+	for i=#t,2,-1 do
+		for j=i-1,1,-1 do
+			if func(t[i],t[j]) then break end
+		end
+	end
+end
+
+
+function superfunc:interact_(func)
+	local t = self:find(function () return true end)
+	for i=#t,#t-1 do
+		for j=i+1,#t do
+			if func(t[i],t[j]) then break end
+		end
+	end
+end
+
+
+function superfunc:find(func)
+	local t = {}
+	for i,v in ipairs(self) do
+		for j,w in ipairs(v:find(func)) do
+			table.insert(t, w)
+		end
+	end
+	return t
 end
 
 return buddies
