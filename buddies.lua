@@ -1,10 +1,26 @@
 --
--- buddies 
+-- buddies
 --
--- Copyright (c) 2015 Sheepolution
+-- Copyright (c) 2019 Sheepolution
+
+-- Permission is hereby granted, free of charge, to any person obtaining a copy
+-- of this software and associated documentation files (the "Software"), to deal
+-- in the Software without restriction, including without limitation the rights
+-- to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+-- copies of the Software, and to permit persons to whom the Software is
+-- furnished to do so, subject to the following conditions:
+
+-- The above copyright notice and this permission notice shall be included in all
+-- copies or substantial portions of the Software.
+
+-- THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+-- IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+-- FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+-- AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+-- LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+-- OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+-- SOFTWARE.
 --
--- This library is free software; you can redistribute it and/or modify it
--- under the terms of the MIT license. See LICENSE for details.
 
 local buddies = {}
 local func = {}
@@ -34,19 +50,24 @@ function buddies:__index(f)
 	end
 end
 
+function buddies:__call(f, ...)
+	self:call(f, ...)
+end
 
-function buddies.new(a, ...)
+function buddies.new(sb, ...)
 	local t
-	if a == true then
+	if sb == true then
 		t =  setmetatable({
 		add = superfunc.add, 
 		count = superfunc.count,
 		find = superfunc.find,
-		interact = superfunc.interact,
-		interact_ = superfunc.interact_,
+		table = superfunc.table,
+		clone = func.clone,
+		others = superfunc.others,
+		others_ = superfunc.others_,
 		}, buddies)
 		for i,v in ipairs({...}) do
-			table.insert(self, v)
+			table.insert(t, v)
 		end
 	else
 		t =  setmetatable({
@@ -56,35 +77,48 @@ function buddies.new(a, ...)
 		removeIf = func.removeIf,
 		count = func.count,
 		find = func.find,
+		table = func.table,
+		clone = func.clone,
 		call = func.call,
 		call_ = func.call_,
-		interact = func.interact,
-		interact_ = func.interact_,
+		others = func.others,
+		others_ = func.others_,
 		flush = func.flush,
 		set = func.set,
 		sort = func.sort
 		}, buddies)
-		t:add(a, ...)
+		t:add(sb, ...)
 	end
 	return t
 end
 
-
-function func:add(...)
-	for i,v in ipairs({...}) do
-		table.insert(self, v)
+function func:add(n, ...)
+	if type(n) == "number" then
+		for i,v in ipairs({...}) do
+			table.insert(self, n + i - 1, v)
+		end
+	else
+		table.insert(self, n)
+		for i,v in ipairs({...}) do
+			table.insert(self, v)
+		end
 	end
-end
-
-
-function func:insert(p, v)
-	table.insert(self, p, v)
 end
 
 --Removes the object. If a number is passed, the object on that position will be removed instead.
 function func:remove(obj)
+	if not obj then return end
 	t = type(obj)
-	
+
+	if t == "function" then
+		for i=#self,1,-1 do
+			if obj(self[i]) then
+				self:remove(self[i])
+			end
+		end
+		return
+	end
+
 	local kill = 0
 	
 	if t == "table" then
@@ -111,20 +145,16 @@ function func:remove(obj)
 	end
 end
 
-
-function func:removeIf(func)
-	for i=#self,1,-1 do
-		if func(self[i]) then
-			self:remove(self[i])
-		end
+function func:flush()
+	for i=1,#self do
+		self[i] = nil
 	end
 end
 
-
-function func:find(func)
+function func:table(f)
 	local t = {}
 	for i=#self,1,-1 do
-		if func(self[i]) then
+		if not f or f(self[i]) then
 			table.insert(t, self[i])
 		end
 	end
@@ -132,44 +162,63 @@ function func:find(func)
 end
 
 
-function func:count(func)
-	local a
+function func:clone(f)
+	return buddies.new(unpack(self:table(f)))
+end
+
+function func:count(f)
+	if not func then return #self end
+	local n = 0
 	for i=1,#self do
-		if func(self[i]) then
-			a = a + 1
+		if not f or f(self[i]) then
+			n = n + 1
 		end
 	end
-	return a
+	return n
 end
 
---Calls the passed function for each object, passing the object as first argument.
-function func:call(func)
-	for i=#self,1,-1 do
-		func(self[i])
+function func:call(f, ...)
+	if type(f) == "string" then
+		for i=#self,1,-1 do
+			if self[i][f] then
+				self[i][f](self[i], ...)
+			end
+		end
+	else
+		for i=#self,1,-1 do
+			f(self[i], ...)
+		end
 	end
 end
 
-function func:call_(func)
-	for i=1,#self do
-		func(self[i])
+function func:call_(f, ...)
+	if type(f) == "string" then
+		for i=1,#self do
+			if self[i][f] then
+				self[i][f](self[i], ...)
+			end
+		end
+	else
+		for i=1,#self do
+			f(self[i], ...)
+		end
 	end
 end
 
 --Has all the objects iterate through the other objects, allowing for interactivity.
 --Calls the passed function, giving both objects as arguments.
-function func:interact(func)
+function func:others(f)
 	for i=#self,2,-1 do
 		for j=i-1,1,-1 do
-			if func(self[i],self[j]) then break end
+			if f(self[i],self[j]) then break end
 		end
 	end
 end
 
-
-function func:interact_(func)
+function func:others_(f)
 	for i=1,#self-1 do
 		for j=i+1,#self do
-			if func(self[i],self[j]) then break end
+			if f(self[i],self[j]) then break end
 		end
 	end
 end
@@ -184,95 +233,81 @@ function func:set(k,v,force)
 	end
 end
 
---Removes all the objects, but keeps the functions.
-function func:flush()
-	for i=1,#self do
-		self[i] = nil
-	end
-end
-
 --Sorts all the objects on a property.
 --If an object does not have the passed property, it will be treated as 0.
 --Will automatically sort from low to high, unlesss htl (high to low) is true.
 function func:sort(k,htl)
 	local sorted = false
-	if htl then
-		while not sorted do
-			sorted = true
-			for i=1,#self-1 do
-				for j=i+1,#self do
-					local propA, propB
-					propA = self[i][k] or 0
-					propB = self[j][k] or 0
-					if propA < propB then
-						local old = self[j]
-						self[j] = self[i]
-						self[i] = old
-						sorted = false
-					end
+	while not sorted do
+		sorted = true
+		for i=1,#self-1 do
+			for j=i+1,#self do
+				local propA, propB
+				propA = self[i][k] or 0
+				propB = self[j][k] or 0
+				
+				if (htl and propA < propB) or (not htl and propA > propB) then
+					local old = self[j]
+					self[j] = self[i]
+					self[i] = old
+					sorted = false
 				end
+			end
+		end
+	end
+end
+
+function superfunc:add(n, n2, ...)
+	if type(n) == "number" then
+		if type(n2) == "number" then
+			for i,v in ipairs({...}) do
+				table.insert(self[n], n2 + i - 1, v)
+			end
+		else
+			table.insert(self, n)
+			for i,v in ipairs({...}) do
+				table.insert(self[n], v)
 			end
 		end
 	else
-		while not sorted do
-			sorted = true
-			for i=1,#self-1 do
-				for j=i+1,#self do
-					local propA, propB
-					propA = self[i][k] or 0
-					propB = self[j][k] or 0
-					if propA > propB then
-						local old = self[j]
-						self[j] = self[i]
-						self[i] = old
-						sorted = false
-					end
-				end
-			end
+		table.insert(self, n)
+		table.insert(self, n2)
+		for i,v in ipairs({...}) do
+			table.insert(self, v)
 		end
 	end
 end
 
-
-function superfunc:add(n, ...)
-	assert(type(n) == "number", "Superbuddy needs a number as first argument", 2)
-	self[n]:add(...)
-end
-
-
-function superfunc:count(func)
-	local a
+function superfunc:count(f)
+	local n = 0
 	for i,v in ipairs(self) do
-		a = a + v:count(func)
+		n = n + v:count(f)
 	end
-	return a
+	return n
 end
 
-
-function superfunc:interact(func)
-	local t = self:find(function () return true end)
+function superfunc:others(f)
+	local t = self:table()
 	for i=#t,2,-1 do
 		for j=i-1,1,-1 do
-			if func(t[i],t[j]) then break end
+			if f(t[i],t[j]) then break end
 		end
 	end
 end
 
-
-function superfunc:interact_(func)
+function superfunc:others_(f)
 	local t = self:find(function () return true end)
 	for i=#t,#t-1 do
 		for j=i+1,#t do
-			if func(t[i],t[j]) then break end
+			if f(t[i],t[j]) then break end
 		end
 	end
 end
 
-
-function superfunc:find(func)
+function superfunc:table(f)
 	local t = {}
 	for i,v in ipairs(self) do
-		for j,w in ipairs(v:find(func)) do
+		for j,w in ipairs(v:table(f)) do
 			table.insert(t, w)
 		end
 	end

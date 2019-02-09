@@ -2,7 +2,6 @@
 
 A group module for Lua.
 
-
 ## Installation
 
 ```lua
@@ -16,8 +15,11 @@ objects = buddies.new()
 ```
 
 
-## Example
-Now we can add objects to our group. You can only add metatables.
+Now you can add objects to your group.
+
+## Usage 
+
+### Example
 
 ```lua
 dog = {}
@@ -39,23 +41,30 @@ And now we can make our group call `makeSound()`
 objects:makeSound()
 --output: "Meow!", "Bark!"
 ```
+
 It normally iterates reversed, by adding an underscore at the end of the function name you iterate forwards.
+
 ```lua
 objects:makeSound_()
 --output: "Bark!", "Meow!"
 ```
 
-## Usage
+### add([n], ...)
+Adds objects to the group.
+If you pass a number as first argument, the passed objects will be added to that position in the group.
 
-### add(...)
-Adds objects to the group, and adds the function of those objects.
 ```lua
 objects:add(dog, cat)
+objects:add(2, bird, monkey)
+-- dog, bird, money, cat
 ```
 
-
 ### remove(object)
-Removes `object` from the group. If a number is passed, it will remove the object on that position in the group.
+### remove(n)
+### remove(func)
+Removes `object` from the group.
+If number `n` is passed instead, it will remove the object on that position in the group.
+If function `func` is passed instead, it removes all objects where `func` returns true when the object is passed as argument.
 
 ```lua
 objects:add(dog, cat, bird)
@@ -71,30 +80,52 @@ objects:makeSound()
 --ouput: "Kruauuaa!!"
 ```
 
-### flush()
-Removes all the objects, but keeps the functions.
 ```lua
-objects:add(dog, cat, bird)
-objects:makeSound()
---output: "Kruauuaa!!", "Meow!", "Bark!"
-
-objects:flush()
-objects:makeSound()
---No output as there are no objects
+objects:add(dog, bird cat)
+objects:removeIf(function (e) return e.canFly end)
+-- objects: dog, cat 
 ```
 
+### flush()
+Removes all objects from the group.
 
-### interact(func)
-### interact_(func)
+### table([func])
+Returns a copy of the group as table. If a function is passed, it filters to all objects where `func` returns true when the object is passed as argument.
+```lua
+objects:add(dog, bird cat)
+t = objects:filter(
+	function (self)
+		return self.canFly
+	end)
+-- objects: dog, bird, cat 
+-- t: bird
+```
+
+### clone([func])
+Returns a clone of the group as buddies group. If a function is passed, it will only clone the objects in the group where `func` returns true when the object is passed as argument.
+
+### count([func])
+Returns the number of objects in the group, same as `#objects`. If a function is passed, it returns the number of objects in the group where `func` returns true when the object is passed as argument.
+
+```lua
+objects:add(dog, bird, cat)
+print(objects:count(function (self)
+	return self.canFly
+end))
+-- Output: 1
+```
+
+### others(func)
+### others_(func)
 Makes all the objects iterate through the other objects, and calls `func` with the objects as arguments.
 
-If func returns true, it will break the second loop.
+If the passed function returns `true`, it continues the outer loop, meaning `a` will change to the next object in line.
 
-Normally iterates reversed, use `interact_`, to iterate forwards.
+Normally iterates reversed, use `others_`, to iterate forwards.
 
 ```lua
 objects:add(dog, cat, bird)
-objects:interact(function (a, b)
+objects:others(function (a, b)
 	a:becomeFriends(b)
 	b:becomeFriends(a)
 end)
@@ -103,8 +134,8 @@ end)
 ### call(func)
 ### call_(func)
 Calls the passed function for each object, passing the object itself as first argument.
-
 Normally iterates reversed, use `call_`, to iterate forwards.
+You can also call the buddies object as function (`objects(func)`).
 
 ```lua
 objects:add(bird, dog, cat)
@@ -118,7 +149,7 @@ end)
 ### set(k, v, force)
 Sets the value of a property of all objects.
 
-It will only set the value of the object already has this property, unless `force` is `true`.
+It will only set the value if the object already has this property, unless `force` is `true`.
 
 ```lua
 objects:add(bird, cat, tree)
@@ -149,8 +180,8 @@ objects:printName()
 --output: "elephant", "cat", "mouse"
 ```
 
-##superbuddy
-A superbuddy is a buddy that can store other buddies. You create a superbuddy by passing ``true`` as first argument in ``.new``.
+## superbuddy
+A superbuddy is a buddy that can store other buddies. You create a superbuddy by passing `true` as first argument in `.new`.
 
 ```lua
 animals = buddies.new(sheep, cat, dog)
@@ -161,25 +192,17 @@ print(creatures:count())
 --output: 6
 ```
 
-A superbuddy has a bit different functionality.
+In theory a superbuddy can store other superbuddies, and thus create an endless chain of superbuddies. All normal buddies functions work for a superbuddy as well. With those functions the objects are treated as one big group, e.g. `superbuddy:table()` returns all objects and `superbuddy:count()` counts all objects. Note that `superbuddy:sort()` sorts each buddy individually from each other. `clone(func)` clones all groups into one big normal buddy (and thus no superbuddy).
 
-For ``add`` you have to pass a number as to which buddy you want to add something.
+### add([n, [n2]], ...)
+
+Add buddies to your superbuddy. If `n` is a number, the objects are passed to the buddy on that position in the superbuddy group instead.
+If `n2` is also number, the objects are passed to that position to the buddy on position `n`.
 
 ```lua
 creatures:add(1, cow)
 creatures:add(2, cockroach)
 ```
-
-If you want to pass more buddies after initializing, you'll have to do it manually
-
-```lua
-plants = buddies.new(tree, flower)
-creatures[3] = plants
-```
-
-In theory a superbuddy can store other superbuddies, and thus create an endless chain of superbuddies. Though this hasn't been tested properly.
-
-
 
 ## License
 
