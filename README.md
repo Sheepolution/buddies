@@ -64,7 +64,7 @@ objects:add(2, bird, monkey)
 ### remove(func)
 Removes `object` from the group.
 If number `n` is passed instead, it will remove the object on that position in the group.
-If function `func` is passed instead, it removes all objects where `func` returns true when the object is passed as argument.
+If function `func` is passed instead, it removes all objects where `func` returns `true` when the object is passed as argument.
 
 ```lua
 objects:add(dog, cat, bird)
@@ -82,7 +82,7 @@ objects:makeSound()
 
 ```lua
 objects:add(dog, bird cat)
-objects:removeIf(function (e) return e.canFly end)
+objects:remove(function (e) return e.canFly end)
 -- objects: dog, cat 
 ```
 
@@ -90,10 +90,10 @@ objects:removeIf(function (e) return e.canFly end)
 Removes all objects from the group.
 
 ### table([func])
-Returns a copy of the group as table. If a function is passed, it filters to all objects where `func` returns true when the object is passed as argument.
+Returns a copy of the group as table. If a function is passed, it filters to all objects where `func` returns `true` when the object is passed as argument.
 ```lua
 objects:add(dog, bird cat)
-t = objects:filter(
+t = objects:table(
 	function (self)
 		return self.canFly
 	end)
@@ -102,7 +102,7 @@ t = objects:filter(
 ```
 
 ### clone([func])
-Returns a clone of the group as buddies group. If a function is passed, it will only clone the objects in the group where `func` returns true when the object is passed as argument.
+Returns a clone of the group as buddies group. If a function is passed, it will only clone the objects in the group where `func` returns `true` when the object is passed as argument.
 
 ### count([func])
 Returns the number of objects in the group, same as `#objects`. If a function is passed, it returns the number of objects in the group where `func` returns true when the object is passed as argument.
@@ -121,7 +121,7 @@ Makes all the objects iterate through the other objects, and calls `func` with t
 
 If the passed function returns `true`, it continues the outer loop, meaning `a` will change to the next object in line.
 
-Normally iterates reversed, use `others_`, to iterate forwards.
+Normally iterates reversed, use `others_` to iterate forwards.
 
 ```lua
 objects:add(dog, cat, bird)
@@ -134,7 +134,7 @@ end)
 ### call(func)
 ### call_(func)
 Calls the passed function for each object, passing the object itself as first argument.
-Normally iterates reversed, use `call_`, to iterate forwards.
+Normally iterates reversed, use `call_` to iterate forwards.
 You can also call the buddies object as function (`objects(func)`).
 
 ```lua
@@ -147,7 +147,7 @@ end)
 
 
 ### set(k, v, force)
-Sets the value of a property of all objects.
+Sets the value of a property for all objects.
 
 It will only set the value if the object already has this property, unless `force` is `true`.
 
